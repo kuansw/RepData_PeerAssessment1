@@ -1,25 +1,227 @@
 ---
 title: "Reproducible Research: Peer Assessment 1"
-output: 
+output:
   html_document:
     keep_md: true
 ---
+# REPRODUCIBLE RESEARCH - Peer Assessment 1 Report
 
+<br>
+## Introduction
+This is the analysis report for Reproducible Research Peer Assessment 1 submitted by Kuan Siew Weng.
 
+<br>
+## Dataset Description
+The dataset for this assignment was downloaded from the course web site: 
+    https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip.
+
+It is then unzipped and stored into the current working directory for this assignment.
+
+The dataset consists of two months of data from an anonymous individual collected, using a personal activity monitoring device during the months of October and November 2012, and includes the number of steps taken in 5-minute intervals each day.
+
+The dataset is a comma-separated-value (CSV) file, and its variables are:
+- steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+- date: The date on which the measurement was taken in YYYY-MM-DD format
+- interval: Identifier for the 5-minute interval in which measurement was taken  
+
+<br>
 ## Loading and preprocessing the data
 
+First, let's load the dataset file "activity.csv" using the function read.csv() and check the column names and values for the initial rows.
+```{r}
+a <- read.csv("activity.csv")
+str(a)
+head(a)
+```
 
+<br>
+Let's check what the unique values for dates and interval variables are.  
+```{r}
+unique(a$date)
+unique(a$interval)
+```
 
+<br>
+The possible values for the interval variable appears to be a time value in the 24-hour format.
+Let's pad the interval values with leading zeros to make the values more user-readable in the 24-hour time-format.  
+
+For data transformation, the date and interval variables are type-converted to Date and factor respectively.  
+```{r}
+library(stringr)
+a$date <- as.Date(a$date)
+a$interval <- factor(str_pad(a$interval, 4, pad = "0"))
+```
+
+<br>
+Here are the values of date and interval variables after padding and type conversion.
+```{r}
+unique(a$date)
+unique(a$interval)
+```
+
+<br>
 ## What is mean total number of steps taken per day?
 
+Ignoring the missing values, the total number of steps taken per day is calculated by using the group_by() and summarize() functions of the dplyr package, as follows:
+```{r}
+library(dplyr)
+a1 <- summarize(group_by(a, date), 
+                tot.steps = sum(steps, na.rm = TRUE))
+data.frame(a1)
+```
 
+<br>
+Here is a histogram plot of the total number of steps taken per day using the ggplot2 plotting system.
+```{r histogram-a, fig.width=10, fig.height=5}
+library(ggplot2)
 
+ggplot(a1,aes(x = date, y = tot.steps)) + 
+    geom_bar(stat = "identity") +
+    labs(list(title = "Total Number of Steps by Day",
+              y = "Number of Steps",x="Date"))
+
+```
+
+<br>
+Here, the mean and median of the total number of steps taken per day is calculated.
+```{r}
+mean(a1$tot.steps)
+median(a1$tot.steps)
+```
+
+<br>
 ## What is the average daily activity pattern?
+Before summarizing the data and plotting the graph, I will first transform the interval variable values (in 24-hour format) to a new continuous integer variable called intvl.mins, which stores the start time of the interval in minutes from the start of day.  This is to ensure that the adjacent interval values such as 0055 and 0100 are correctly positioned on the x-axis of the time-series line plot.
+
+The interval variable is transformed to the new continuous integer variable, intvl.mins, as follows:
+```{r}
+a$intvl.mins <- ((as.numeric(substr(a$interval,1,2))*60 ) + 
+                 (as.numeric(substr(a$interval,3,4))))
+```
+
+<br>
+Ignoring missing values, now we can calculate the average number of steps taken for each 5 minute interval, 
+averaged across all days, using the group_by() and summarize() functions of the dplyr package.
+```{r}
+a2 <- summarize(group_by(a,intvl.mins), 
+                avg.steps = round(mean(steps, na.rm=TRUE), digits = 3))
+```
+
+<br>
+Here is the time-series line plot of the average number of steps taken at each 5 minute interval of the day, averaged across all days, created using the ggplot2 plotting system.   This R chunk includes a x-tick label formatter which is used to pretty-print the new intvl.mins variable in the 24-hour time format on the x-axis.
+```{r dailypattern-a, fig.width=10, fig.height=5}
+timeHMS_formatter <- function(x) {
+    h <- floor(x / 60)
+    m <- floor(x %% 60)
+    lab <- sprintf('%02d:%02d',h,m)    
+}
+
+ggplot(a2, aes(x = intvl.mins, y = avg.steps)) + geom_line() + 
+    scale_x_continuous(label = timeHMS_formatter, 
+                       limits = c(0,1435), 
+                       breaks = c(0,120,240,360,480,600,720,840,960,1080,1200,1320,1440)) +
+    labs(list(
+        title = "Number of Steps by Time of Day Averaged Across all Days",
+        y = "Number of Steps",x="Time of Day"))
+```
+
+<br>
+Using the following R chunk, the 5-min interval of the day that contains the highest average steps, averaged across all days, is identified to be the 08:35 time interval.
+```{r}
+print(timeHMS_formatter(as.numeric(a2[which.max(a2$avg.steps),"intvl.mins"])))
+```
 
 
-
+<br>
 ## Imputing missing values
+In this R chunk, we check for missing step values in the raw dataset and identified that the value is missing from the steps variable of 2304 rows. 
+```{r}
+anyNA(a$steps)
+nrow(a[is.na(a$steps),])
+head(a)
+```
+
+<br>
+The strategy to fill the missing step value is to simply use the mean for the corresponding 5-minute interval which was calculated and stored in the data frame a2 in the earlier part of this assignment.   To achieve this value imputation strategy, a new dataset b is first created by joining the original data frame a and the data frame a2;  adding the avg.steps value for the 5-minute interval to each row of the original data frame.  
+```{r}
+b <- inner_join(a, a2)
+head(b)
+```
+
+After the new dataset is created and the new column is added, the missing value in the steps variable for each observation can be replaced by the value of its avg.steps column as follows:
+```{r}
+b$steps <- ifelse(!is.na(b$steps), b$steps, round(b$avg.steps, digits = 0))
+```
+
+<br>
+Let's double-check that there are no more rows with missing values after the above operation to impute missing values for the steps variable.  head(b) also shows that the missing values in the first 6 rows have been successfully imputed.
+```{r}
+anyNA(b$steps)
+head(b)
+```
+
+<br>
+Now that the missing values have been imputed, the total number of steps taken per day can be re-calculated by using the group_by() and summarize() functions of the dplyr package, as follows:
+```{r}
+b1 <- summarize(group_by(b, date), tot.steps = sum(steps, na.rm=TRUE))
+data.frame(b1)
+```
+
+<br>
+Here the histogram of the total number of steps taken per day is re-plotted using the ggplot2 plotting system.  
+Now, there are additional bars for those days which had missing values in their steps variable previously.
+```{r histogram-b, fig.width=10, fig.height=5}
+ggplot(b1, aes(x = date, y = tot.steps)) + 
+    geom_bar(stat = "identity") +
+    labs(list(title = "Total Number of Steps by Day (Missing Values Imputed)",
+              y = "Number of Steps",x = "Date"))
+```
+ 
+
+<br>
+Here, the mean and median of the total number of steps taken per day is re-calculated.  It can be seen that both the mean and median values have increased after the missing values in the steps variable has been imputed.
+```{r}
+mean(b1$tot.steps)
+median(b1$tot.steps)
+```
 
 
-
+<br>
 ## Are there differences in activity patterns between weekdays and weekends?
+To distinguish activity patterns between weekdays and weekends, a new variable wkend is added 
+to the data frame.   The weekdays() function is used to determine if the date of an observation is a weekend or a weekday.  If date falls on a Saturday or Sunday, the value of this new variable is set to "Weekend".   Otherwise, it is set to "Weekday".   
+```{r}
+b$wkend <- (weekdays(b$date) %in% c("Sunday", "Saturday"))
+b$wkend <- factor(b$wkend, levels = c("TRUE", "FALSE"), 
+                  labels = c("Weekend","Weekday"))
+```
+
+<br>
+Using the group_by() and summarize() functions of the dplyr package, the average number of steps taken 
+for each 5 minute interval, averaged across all days and grouped by weekdays and weekends, can be
+calculated using the new dataset which has imputed the missing values in the steps variable.
+```{r}
+b3 <- summarize(group_by(b, wkend, intvl.mins),
+                avg.steps = mean(steps, na.rm=TRUE))
+```
+
+<br>
+Finally, the multi-facet time-series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis) is generated based on the above processed dataset, using the ggplot2 plotting system.
+```{r dailypattern-b, fig.width=10, fig.height=5}
+
+ggplot(b3,aes(x = intvl.mins, y = avg.steps)) + geom_line() + 
+    scale_x_continuous(label = timeHMS_formatter, 
+                       limits = c(0,1435), 
+                       breaks = c(0,120,240,360,480,600,720,840,960,1080,1200,1320,1440)) +
+    facet_grid(wkend ~ .) +
+    labs(list(title = "Number of Steps by Time of Day Averaged Across WeekDays & Weekends",
+        y = "Number of Steps",x = "Time of Day"))
+
+```
+
+<br>
+Comparing the two time-series line graphs, it can be observed that the activity patterns of the individual is different on weekends as compared to weekdays.   He became active later in the morning of weekends as compared to weekdays, but he remained active throughout the day into the evenings on weekends, whereas on weekdays, he is comparatively less active during the afternoons and evenings.
+
+
+<br>
+# END OF REPORT 
