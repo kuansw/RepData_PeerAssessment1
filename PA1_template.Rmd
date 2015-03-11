@@ -4,7 +4,7 @@ output:
   html_document:
     keep_md: true
 ---
-# REPRODUCIBLE RESEARCH - Peer Assessment 1 Report
+# Reproducible Research: Peer Assessment 1 Report
 
 <br>
 ## Introduction
