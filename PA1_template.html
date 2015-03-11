@@ -316,6 +316,15 @@ a$interval &lt;- factor(str_pad(a$interval, 4, pad = &quot;0&quot;))
 <p><br>
 Here are the values of date and interval variables after padding and type conversion.</p>
 
+<pre><code class="r">str(a)
+</code></pre>
+
+<pre><code>## &#39;data.frame&#39;:    17568 obs. of  3 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : Date, format: &quot;2012-10-01&quot; &quot;2012-10-01&quot; ...
+##  $ interval: Factor w/ 288 levels &quot;0000&quot;,&quot;0005&quot;,..: 1 2 3 4 5 6 7 8 9 10 ...
+</code></pre>
+
 <pre><code class="r">unique(a$date)
 </code></pre>
 

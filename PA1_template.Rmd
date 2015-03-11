@@ -55,6 +55,7 @@ a$interval <- factor(str_pad(a$interval, 4, pad = "0"))
 <br>
 Here are the values of date and interval variables after padding and type conversion.
 ```{r}
+str(a)
 unique(a$date)
 unique(a$interval)
 ```

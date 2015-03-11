@@ -121,6 +121,17 @@ a$interval <- factor(str_pad(a$interval, 4, pad = "0"))
 Here are the values of date and interval variables after padding and type conversion.
 
 ```r
+str(a)
+```
+
+```
+## 'data.frame':	17568 obs. of  3 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : Date, format: "2012-10-01" "2012-10-01" ...
+##  $ interval: Factor w/ 288 levels "0000","0005",..: 1 2 3 4 5 6 7 8 9 10 ...
+```
+
+```r
 unique(a$date)
 ```
 
