@@ -5,29 +5,36 @@ output:
     keep_md: true
 ---
 # Reproducible Research: Peer Assessment 1 Report
+*Prepared By: Kuan Siew Weng*  
+*Prepared On: 12th March 2015*
 
 <br>
 ## Introduction
-This is the analysis report for Reproducible Research Peer Assessment 1 submitted by Kuan Siew Weng.
+This is the analysis report for Coursera Data Science Specialization - 
+Reproducible Research Peer Assessment 1.
 
 <br>
 ## Dataset Description
-The dataset for this assignment was downloaded from the course web site: 
-    https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip.
-
-It is then unzipped and stored into the current working directory for this assignment.
-
-The dataset consists of two months of data from an anonymous individual collected, using a personal activity monitoring device during the months of October and November 2012, and includes the number of steps taken in 5-minute intervals each day.
+The dataset for analysis consists of two months of data from an anonymous 
+individual collected, using a personal activity monitoring device during the 
+months of October and November 2012, and includes the number of steps taken in 
+5-minute intervals each day.
 
 The dataset is a comma-separated-value (CSV) file, and its variables are:
 - steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
 - date: The date on which the measurement was taken in YYYY-MM-DD format
 - interval: Identifier for the 5-minute interval in which measurement was taken  
 
+The dataset for this assignment was downloaded from the course web site URL: 
+    https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip.
+
+It is then unzipped and stored into the current working directory for this assignment.
+
 <br>
 ## Loading and preprocessing the data
 
-First, let's load the dataset file "activity.csv" using the function read.csv() and check the column names and values for the initial rows.
+First, let's load the dataset file "activity.csv" from the current working directory
+using the function read.csv() and check the column names as well as the initial rows.
 ```{r}
 a <- read.csv("activity.csv")
 str(a)
@@ -72,12 +79,14 @@ data.frame(a1)
 ```
 
 <br>
-Here is a histogram plot of the total number of steps taken per day using the ggplot2 plotting system.
+Here is a histogram plot of the total number of steps taken per day using the ggplot2 plotting system,   
+with the mean value indicated by the red horizontal line. 
 ```{r histogram-a, fig.width=10, fig.height=5}
 library(ggplot2)
 
 ggplot(a1,aes(x = date, y = tot.steps)) + 
-    geom_bar(stat = "identity") +
+    geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+    geom_hline(yintercept = mean(a1$tot.steps), color = "red", size = 1) +
     labs(list(title = "Total Number of Steps by Day",
               y = "Number of Steps",x="Date"))
 
@@ -135,8 +144,11 @@ print(timeHMS_formatter(as.numeric(a2[which.max(a2$avg.steps),"intvl.mins"])))
 
 <br>
 ## Imputing missing values
-In this R chunk, we check for missing step values in the raw dataset and identified that the value is missing from the steps variable of 2304 rows. 
+In this R chunk, we check for missing values in the raw dataset, and found that the
+value of the steps variable is missing in 2304 rows. 
 ```{r}
+anyNA(a$date)
+anyNA(a$interval)
 anyNA(a$steps)
 nrow(a[is.na(a$steps),])
 head(a)
@@ -173,7 +185,8 @@ Here the histogram of the total number of steps taken per day is re-plotted usin
 Now, there are additional bars for those days which had missing values in their steps variable previously.
 ```{r histogram-b, fig.width=10, fig.height=5}
 ggplot(b1, aes(x = date, y = tot.steps)) + 
-    geom_bar(stat = "identity") +
+    geom_bar(stat = "identity", fill = "steelblue", color = "black") +
+    geom_hline(yintercept = mean(b1$tot.steps), color = "red", size = 1) +
     labs(list(title = "Total Number of Steps by Day (Missing Values Imputed)",
               y = "Number of Steps",x = "Date"))
 ```
@@ -202,7 +215,7 @@ Using the group_by() and summarize() functions of the dplyr package, the average
 for each 5 minute interval, averaged across all days and grouped by weekdays and weekends, can be
 calculated using the new dataset which has imputed the missing values in the steps variable.
 ```{r}
-b3 <- summarize(group_by(b, wkend, intvl.mins),
+b2 <- summarize(group_by(b, wkend, intvl.mins),
                 avg.steps = mean(steps, na.rm=TRUE))
 ```
 
@@ -210,7 +223,7 @@ b3 <- summarize(group_by(b, wkend, intvl.mins),
 Finally, the multi-facet time-series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis) is generated based on the above processed dataset, using the ggplot2 plotting system.
 ```{r dailypattern-b, fig.width=10, fig.height=5}
 
-ggplot(b3,aes(x = intvl.mins, y = avg.steps)) + geom_line() + 
+ggplot(b2, aes(x = intvl.mins, y = avg.steps)) + geom_line() + 
     scale_x_continuous(label = timeHMS_formatter, 
                        limits = c(0,1435), 
                        breaks = c(0,120,240,360,480,600,720,840,960,1080,1200,1320,1440)) +
@@ -225,4 +238,4 @@ Comparing the two time-series line graphs, it can be observed that the activity 
 
 
 <br>
-# END OF REPORT 
+****
